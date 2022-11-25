@@ -7,7 +7,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 df = pd.read_csv("Trade.csv")
 print(df)
 
-# Count Trade and Ex Trade
+# Count Trade and Extended Trade
 Trade_count = 0
 Ex_Trade_count = 0
 for Row in df["Tag"]:
