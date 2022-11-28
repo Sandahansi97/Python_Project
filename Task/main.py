@@ -1,8 +1,7 @@
 import datetime as dt
 from decimal import Decimal
-import matplotlib.pyplot as plt
 import pandas as pd
-from matplotlib.backends.backend_pdf import PdfPages
+from fpdf import FPDF
 
 df = pd.read_csv("Trade.csv")
 print(df)
@@ -11,28 +10,26 @@ print(df)
 Trade_count = 0
 Ex_Trade_count = 0
 for Row in df["Tag"]:
-    if(Row == "TRADE"):
+    if Row == "TRADE":
         Trade_count = Trade_count + 1
-    if(Row == "EXTRD"):
+    if Row == "EXTRD":
         Ex_Trade_count = Ex_Trade_count + 1
-
 
 # Print Trade Count and Ex Trade Count
 print("Trades Count: ", Trade_count)
 print("Extended Trades Count: ", Ex_Trade_count)
 
-
 # Total Values Of Buy Trades and Sell Trades
 Total_value_of_BUY_trades = 0
 Total_value_of_SELL_trades = 0
-i=0
+i = 0
 for row in df["Direction"]:
-    if (row == "B" or row == "BUY"):
+    if row == "B" or row == "BUY":
         Total_value_of_BUY_trades += Decimal(float(df["Price"][i])) * Decimal(float(df["Quantity"][i]))
 
-    if (row == "S" or row == "SELL"):
+    if row == "S" or row == "SELL":
         Total_value_of_SELL_trades += Decimal(float(df["Price"][i])) * Decimal(float(df["Quantity"][i]))
-i+=1
+    i += 1
 
 # Print Buy Trade Count and Sell Trade Count
 print(Total_value_of_BUY_trades)
@@ -50,82 +47,76 @@ for Row in df["Comment"]:
         longest_comment = Row
 
 # get comment list
-comments_list = [str(i).strip() for i in df['Comment'].tolist()]
-print(comments_list)
-Length_of_longest_comment = len(max(comments_list, key=len))
-print("Length of longest comment : ", Length_of_longest_comment)
+Comments_List = [str(i).strip() for i in df['Comment'].tolist()]
+print(Comments_List)
 
+Longest_Comment_Len = len(max(Comments_List, key=len))
+print("Length Of Longest Comment : ", Longest_Comment_Len)
 
 # Longest comment
-Longest_comment = max(comments_list, key=len)
+Longest_comment = max(Comments_List, key=len)
 print("Longest comment : ", Longest_comment)
 
 # Trade interval
-TempLast_Time = df["Trade Date and Time"][len(df)-1]
+TempLast_Time = df["Trade Date and Time"][len(df) - 1]
 TempFirst_Time = df["Trade Date and Time"][0]
 
-Last_Time = dt.datetime(int(TempLast_Time[0:4]), int(TempLast_Time[5:7]), int(TempLast_Time[8:10]), int(TempLast_Time[11:13]), int(TempLast_Time[14:16]), int(TempLast_Time[17:19]))
-First_Time = dt.datetime(int(TempFirst_Time[0:4]), int(TempFirst_Time[5:7]), int(TempFirst_Time[8:10]), int(TempFirst_Time[11:13]), int(TempFirst_Time[14:16]), int(TempFirst_Time[17:19]))
-Trade_Interval = int((Last_Time-First_Time).total_seconds())
+Last_Time = dt.datetime(int(TempLast_Time[0:4]), int(TempLast_Time[5:7]), int(TempLast_Time[8:10]),
+                        int(TempLast_Time[11:13]), int(TempLast_Time[14:16]), int(TempLast_Time[17:19]))
+First_Time = dt.datetime(int(TempFirst_Time[0:4]), int(TempFirst_Time[5:7]), int(TempFirst_Time[8:10]),
+                         int(TempFirst_Time[11:13]), int(TempFirst_Time[14:16]), int(TempFirst_Time[17:19]))
+Trade_Interval = int((Last_Time - First_Time).total_seconds())
 print("Trade_Interval : ", Trade_Interval)
 
 Number_of_unique_firms: int = len((pd.concat([df["Buyer"], df["Seller"]])).unique())
-
-print("Number of unique firms : ", Number_of_unique_firms)
+print("Number Of Unique Firms : ", Number_of_unique_firms)
 
 Unique_firm_IDs = "|".join(pd.concat([df["Buyer"], df["Seller"]]).unique())
 print("Unique firm IDs : ", Unique_firm_IDs)
 
-Item_ID_List = ((df["ItemID"]).unique().tolist())
-Item_ID_List.sort()
-Item_ID = "|".join(Item_ID_List)
-print("Item_ID :", Item_ID)
+# add total values into list
+id_list = []
+i = 0
+for ID in df["ItemID"]:
+    id_list_new = df["Price"][i] * df["Quantity"][i], ID
+    id_list.append(id_list_new)
+    i += 1
 
-# Total value per item ID
-df["total_value"] = df["Price"]*df["Quantity"]
-df1 = df[["ItemID", "total_value"]].groupby("ItemID").sum()
-df1 = df1.reset_index()
-print(df1)
+#   Sort values
+id_list.sort()
 
-# Convert into data frames
-# Summary
-Summary = pd.DataFrame({"Number_of_trades": [Trade_count], "Number_of_extended_trades": [Ex_Trade_count], "Total_value_of_BUY_trades": [Total_value_of_BUY_trades], "Total_value_of_SELL_trades": [Total_value_of_SELL_trades]
-, "Length_of_the_longest_comment": [Length_of_longest_comment], "Longest_comment": [Longest_comment], "Trade_interval": [Trade_Interval]}).transpose().reset_index()
-Summary.columns = ("Field_name", "Value")
-print(Summary)
+# FPDF2
+pdf = FPDF()
+pdf.set_font("Arial", size=12)
+pdf.add_page()
 
-# List of Firms
-List_of_Firms = pd.DataFrame({"Number of unique firms": [Number_of_unique_firms], "Unique firm IDs": [Unique_firm_IDs]}).transpose().reset_index()
-List_of_Firms.columns = ("Field_name", "Value")
-print(List_of_Firms)
+col_width = pdf.w / 4.5
+row_height = pdf.font_size * 2
+header_height = row_height * 2
+header_width = pdf.w / 2
+row_space = row_height * 1.5
 
-# Totals per Item ID
-Totals_per_Item_ID = df1
+# Summary to PDF
+pdf.cell(header_width, header_height, "Summary Of Trade ", ln=row_space)
+pdf.cell(col_width, row_height, "Num of Trades: " + str(Trade_count), ln=row_space)
+pdf.cell(col_width, row_height, "Num of Ex-trade: " + str(Ex_Trade_count), ln=row_space)
+pdf.cell(col_width, row_height, "Total Buy values: " + str(Total_value_of_BUY_trades), ln=row_space)
+pdf.cell(col_width, row_height, "Total Sell values: " + str(Total_value_of_SELL_trades), ln=row_space)
+pdf.cell(col_width, row_height, "Length of the longest comment: " + str(Longest_Comment_Len), ln=row_space)
+pdf.cell(col_width, row_height, "Longest Comment: " + str(Longest_comment), ln=row_space)
+pdf.cell(col_width, row_height, "Trade Interval: " + str(Trade_Interval), ln=row_space)
 
-# Convert to PDF
-# Summary PDF
-fig, ax = plt.subplots(figsize=(15, 20))
-ax.axis('tight')
-ax.axis('off')
-Summary_table = ax.table(cellText=Summary.values, colLabels=Summary.columns, loc="upper center")
-pp = PdfPages("List_Of_Summary.pdf")
-pp.savefig(fig, bbox_inches='tight')
-pp.close()
+# Firms to PDF
+pdf.ln(row_height)
+pdf.cell(header_width, header_height, "List of Firms ", ln=row_space)
+pdf.cell(col_width, row_height, "Number of unique firms: " + str(Number_of_unique_firms), ln=row_space)
+pdf.cell(col_width, row_height, "Unique firm IDs: " + str(Unique_firm_IDs), ln=row_space)
 
-# List of Firms PDF
-fig, ax = plt.subplots(figsize=(15, 20))
-ax.axis('tight')
-ax.axis('off')
-Firms_table = ax.table(cellText=List_of_Firms.values, colLabels=List_of_Firms.columns, loc="upper center")
-pp = PdfPages("List_Of_Firms.pdf")
-pp.savefig(fig, bbox_inches='tight')
-pp.close()
+# Item ids with Total value- ASC Order to pdf
+pdf.ln(row_height)
+pdf.cell(header_width, header_height, "Item Ids ", ln=row_space)
+pdf.cell(col_width, row_height, "(Total Value , Item ID ) ", ln=row_space)
+for val in id_list:
+    pdf.cell(col_width, row_height, str(val), ln=row_space)
 
-# Totals per Item ID
-fig, ax = plt.subplots(figsize=(15, 20))
-ax.axis('tight')
-ax.axis('off')
-ItemID_table = ax.table(cellText=Totals_per_Item_ID.values, colLabels=Totals_per_Item_ID.columns, loc="upper center")
-pp = PdfPages("List_Of_ItemID.pdf")
-pp.savefig(fig, bbox_inches='tight')
-pp.close()
+pdf.output("FinalOutput.pdf")
