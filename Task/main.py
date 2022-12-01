@@ -32,8 +32,8 @@ for row in df["Direction"]:
     i += 1
 
 # Print Buy Trade Count and Sell Trade Count
-print(Total_value_of_BUY_trades)
-print(Total_value_of_SELL_trades)
+print(round(Total_value_of_BUY_trades, 4))
+print(round(Total_value_of_SELL_trades, 3))
 
 # size of comment
 length_of_comment = 0
@@ -76,18 +76,33 @@ print("Unique firm IDs : ", Unique_firm_IDs)
 
 # add total values into list
 id_list = []
+id_list_new = []
+
 i = 0
 for ID in df["ItemID"]:
-    id_list_new = df["Price"][i] * df["Quantity"][i], ID
-    id_list.append(id_list_new)
+    if ID in id_list:
+        previous_value = id_list[id_list.index(ID)-1]
+        new_value = round(previous_value + (df["Price"][i] * df["Quantity"][i]), 4)
+        id_list.insert(id_list.index(ID)-1, new_value)
+        id_list.pop(id_list.index(ID) - 1)
+    else:
+        id_list.append(df["Price"][i] * df["Quantity"][i])
+        id_list.append(ID)
     i += 1
 
-#   Sort values
-id_list.sort()
+i = 0;
+while i < len(id_list):
+    tmp_tup = id_list[i], id_list[i+1]
+    id_list_new.append(tmp_tup)
+    i += 2
+
+# Sort values
+id_list_new.sort()
+print(id_list_new)
 
 # FPDF2
 pdf = FPDF()
-pdf.set_font("Arial", size=12)
+pdf.set_font("Courier", size=12)
 pdf.add_page()
 
 col_width = pdf.w / 4.5
@@ -100,8 +115,8 @@ row_space = row_height * 1.5
 pdf.cell(header_width, header_height, "Summary Of Trade ", ln=row_space)
 pdf.cell(col_width, row_height, "Num of Trades: " + str(Trade_count), ln=row_space)
 pdf.cell(col_width, row_height, "Num of Ex-trade: " + str(Ex_Trade_count), ln=row_space)
-pdf.cell(col_width, row_height, "Total Buy values: " + str(Total_value_of_BUY_trades), ln=row_space)
-pdf.cell(col_width, row_height, "Total Sell values: " + str(Total_value_of_SELL_trades), ln=row_space)
+pdf.cell(col_width, row_height, "Total Buy values: " + str(round(Total_value_of_BUY_trades, 4)), ln=row_space)
+pdf.cell(col_width, row_height, "Total Sell values: " + str(round(Total_value_of_SELL_trades, 3)), ln=row_space)
 pdf.cell(col_width, row_height, "Length of the longest comment: " + str(Longest_Comment_Len), ln=row_space)
 pdf.cell(col_width, row_height, "Longest Comment: " + str(Longest_comment), ln=row_space)
 pdf.cell(col_width, row_height, "Trade Interval: " + str(Trade_Interval), ln=row_space)
@@ -116,7 +131,7 @@ pdf.cell(col_width, row_height, "Unique firm IDs: " + str(Unique_firm_IDs), ln=r
 pdf.ln(row_height)
 pdf.cell(header_width, header_height, "Item Ids ", ln=row_space)
 pdf.cell(col_width, row_height, "(Total Value , Item ID ) ", ln=row_space)
-for val in id_list:
+for val in id_list_new:
     pdf.cell(col_width, row_height, str(val), ln=row_space)
 
 pdf.output("FinalOutput.pdf")
